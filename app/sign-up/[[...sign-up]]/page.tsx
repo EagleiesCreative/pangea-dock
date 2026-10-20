@@ -1,10 +1,10 @@
-import { SignUp } from "@clerk/nextjs";
-import { AuthShell } from "@/components/AuthShell";
+import { Suspense } from "react";
+import { SignUpFlow } from "@/components/auth/SignUpFlow";
 
 export default function Page() {
   return (
-    <AuthShell>
-      <SignUp />
-    </AuthShell>
+    <Suspense>
+      <SignUpFlow />
+    </Suspense>
   );
 }
