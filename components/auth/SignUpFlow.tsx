@@ -58,8 +58,10 @@ export function SignUpFlow() {
 
   const finish = async (res: SignUpResource) => {
     if (res.status === "complete" && setActive) {
-      await setActive({ session: res.createdSessionId });
-      router.replace("/");
+      await setActive({
+        session: res.createdSessionId,
+        navigate: async ({ session }) => { window.location.assign(session?.currentTask ? "/select-production" : "/"); },
+      });
       return;
     }
     if (res.unverifiedFields?.includes("email_address")) {

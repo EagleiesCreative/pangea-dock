@@ -18,6 +18,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ClerkProvider
       afterSignOutUrl="/sign-in"
+      signInUrl="/sign-in"
+      signUpUrl="/sign-up"
+      taskUrls={{ "choose-organization": "/select-production" }}
       appearance={{
         baseTheme: isDark ? dark : undefined,
         variables: {

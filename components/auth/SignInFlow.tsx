@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useSignIn } from "@clerk/nextjs";
+import { useClerk, useSignIn } from "@clerk/nextjs";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import {
   AuthLayout, Brand, CodeInput, Divider, ErrorText, Field, FootLink, GoogleButton, Input, Note, PasswordInput, Primary, TextButton, Title, clerkError,
@@ -19,6 +19,7 @@ type Step =
 
 export function SignInFlow() {
   const { isLoaded, signIn, setActive } = useSignIn();
+  const clerk = useClerk();
   const router = useRouter();
   const params = useSearchParams();
   const redirect = params.get("redirect_url") || "/";
@@ -35,8 +36,13 @@ export function SignInFlow() {
 
   const go = async (res: SignInResource) => {
     if (res.status === "complete" && setActive) {
-      await setActive({ session: res.createdSessionId });
-      router.replace(redirect.startsWith("/") ? redirect : "/");
+      await setActive({
+        session: res.createdSessionId,
+        navigate: async ({ session }) => {
+          // Pending session (e.g. must choose a production first) → our own task page.
+          window.location.assign(session?.currentTask ? "/select-production" : redirect.startsWith("/") ? redirect : "/");
+        },
+      });
       return true;
     }
     if (res.status === "needs_second_factor") {
@@ -58,6 +64,16 @@ export function SignInFlow() {
     setBusy(which); setError("");
     try { await fn(); } catch (e) { setError(clerkError(e)); } finally { setBusy(""); }
   };
+
+  // Already have a session (active or pending)? Don't show the form — forward instead of "You're already signed in".
+  useEffect(() => {
+    if (!clerk.loaded || ticket) return;
+    const sess = clerk.session;
+    if (!sess) return;
+    if (sess.status === "pending" || sess.currentTask) window.location.replace("/select-production");
+    else if (sess.status === "active") window.location.replace(redirect.startsWith("/") ? redirect : "/");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clerk.loaded, clerk.session]);
 
   // Back from Google with a pending step (e.g. 2-step verification) → continue it here.
   const resumed = useRef(false);
