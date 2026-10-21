@@ -21,13 +21,14 @@ const R = 28; // concave corner radius of the hero "bites"
 
 export function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen items-center justify-center p-3 sm:p-6">
-      <div className="card relative grid w-full max-w-[1180px] overflow-hidden lg:grid-cols-[minmax(0,1fr)_minmax(0,1.08fr)] lg:p-3">
-        <div className="absolute right-4 top-4 z-20 lg:hidden"><ThemeToggle /></div>
-        <section className="flex min-h-[640px] flex-col justify-center px-6 py-12 sm:px-14 lg:py-10">
-          <div className="mx-auto w-full max-w-[380px]">{children}</div>
-        </section>
-        <Hero />
+    // Full-viewport split: form on the left, artwork filling the right edge to edge (inset 12px).
+    <div className="relative grid min-h-[100dvh] bg-surface lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+      <div className="absolute right-4 top-4 z-20 lg:hidden"><ThemeToggle /></div>
+      <section className="flex min-h-[100dvh] flex-col justify-center px-6 py-12 sm:px-14 lg:min-h-0">
+        <div className="mx-auto w-full max-w-[400px]">{children}</div>
+      </section>
+      <div className="hidden p-3 lg:block">
+        <div className="sticky top-3 h-[calc(100dvh-24px)]"><Hero /></div>
       </div>
     </div>
   );
@@ -57,7 +58,7 @@ function Hero() {
     <span aria-hidden className="absolute" style={{ ...pos, width: R, height: R, background: `radial-gradient(circle at ${at}, transparent ${R - 0.5}px, rgb(var(--surface)) ${R}px)` }} />
   );
   return (
-    <div className="relative hidden min-h-[640px] overflow-hidden lg:block" style={{ borderRadius: `0 ${R}px 0 ${R}px` }}>
+    <div className="relative h-full overflow-hidden" style={{ borderRadius: `0 ${R}px 0 ${R}px` }}>
       {/* imagery */}
       <div
         className="absolute inset-0"
@@ -72,12 +73,12 @@ function Hero() {
       <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-black/30" />
 
       {/* caption */}
-      <p className="absolute right-8 top-8 max-w-[340px] text-right text-[19px] font-semibold leading-snug tracking-tight text-white drop-shadow">
+      <p className="absolute right-10 top-10 max-w-[420px] text-right text-[22px] font-semibold leading-snug tracking-tight text-white drop-shadow">
         Run the whole show from one dock — cue sheets, camera plots and crew, live.
       </p>
 
       {/* floating show-control cards */}
-      <div className="absolute inset-x-10 top-1/2 -translate-y-1/2 space-y-3">
+      <div className="absolute left-1/2 top-1/2 w-[min(560px,calc(100%-80px))] -translate-x-1/2 -translate-y-1/2 space-y-3">
         <Glass>
           <div className="flex items-center justify-between">
             <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#ffb4b4]"><span className="h-1.5 w-1.5 animate-tally rounded-full bg-[#ff7a7a]" /> ON AIR · V01</span>

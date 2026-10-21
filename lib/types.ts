@@ -104,6 +104,35 @@ export interface QcItem {
   done: boolean;
 }
 
+/* ---------------- Site & RF plan ---------------- */
+export type SiteMode = "image" | "grid" | "geo";
+export type MarkerKind = "foh" | "rx" | "wireless" | "camera" | "operator" | "stage" | "other";
+export interface SiteMarker {
+  id: string;
+  kind: MarkerKind;
+  label: string;
+  operator: string;
+  notes: string;
+  /** Canonical position in stage metres: origin = downstage centre, x → audience-right, y → into the house. */
+  s: { x: number; y: number };
+  rf?: import("./rf").RfSpec | null;
+}
+export interface SiteMap {
+  mode: SiteMode;
+  envKey: string;
+  n: number; // path-loss exponent
+  /** Floor-plan alignment: where downstage centre sits on the image (px, y up), scale, rotation. */
+  image: { originX: number; originY: number; mpp: number | null; rotDeg: number };
+  /** GPS alignment: downstage centre + compass bearing from the stage toward the house. */
+  geo: { lat: number; lng: number; bearingDeg: number; zoom: number; layer: "street" | "satellite" };
+  showRings: boolean;
+  /** Display unit for distances & positions (data is always stored in metres). */
+  units?: import("./rf").Unit;
+  markers: SiteMarker[];
+}
+/** Kept as its own top-level section so dragging markers doesn't re-upload the picture. */
+export interface SiteImage { src: string | null; name: string; w: number; h: number }
+
 export interface Show {
   event: { name: string; venue: string; format: Format; startTime: string };
   cues: Cue[];
@@ -116,6 +145,8 @@ export interface Show {
   gear: GearItem[];
   qc: QcItem[];
   live: { on: boolean; idx: number; startedAt: number | null };
+  siteMap: SiteMap;
+  siteImage: SiteImage;
 }
 
 export type ListKey = "cues" | "cameras" | "inputs" | "outputs" | "media" | "speakers" | "gear" | "qc";

@@ -45,7 +45,7 @@ Roles live in `lib/roles.ts` — change `EDIT_ROLES` to adjust.
   (cues, cameras, media, …), so two people editing different tabs never overwrite each other.
   Same section at the same moment → last save wins. Clients poll every 2 s for changes.
 - **Default:** JSON files in `./.data/` on the machine running `npm start` — fine for a laptop/NUC in the control room.
-- **Cloud / Vercel:** run `supabase/migrations/0001_pangea_shows.sql` in your Supabase project and set
+- **Cloud / Vercel:** paste `supabase/setup.sql` into Supabase → SQL Editor → Run (one time) and set
   `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` (server-only; never expose it to the browser).
 - Cue timers use the clock of whoever pressed GO — keep control-room machines NTP-synced.
 
@@ -53,4 +53,3 @@ Roles live in `lib/roles.ts` — change `EDIT_ROLES` to adjust.
 - Space = GO when Live Show Mode is on, no input is focused, and you have edit access.
 - Export menu: JSON (full backup incl. stream key), CSV (key omitted), Print/PDF, Import JSON, Reset demo data.
 - Media tab → Export JSON/CSV for a vMix Data Source.
-# pangea-dock

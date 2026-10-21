@@ -101,3 +101,40 @@ body {
   html, body { background: #fff !important; color: #111 !important; }
   .no-print { display: none !important; }
 }
+
+/* ---------- Site & RF plan (Leaflet) ---------- */
+.leaflet-container { font-family: inherit; background: rgb(var(--raise)); }
+.leaflet-control-attribution { font-size: 10px; background: rgb(var(--surface) / .8) !important; color: rgb(var(--fg-muted)); }
+.leaflet-control-attribution a { color: rgb(var(--brand)); }
+.leaflet-bar a { background: rgb(var(--surface)); color: rgb(var(--fg)); border-color: rgb(var(--line)); }
+.leaflet-bar a:hover { background: rgb(var(--raise)); }
+.leaflet-bar { border: 1px solid rgb(var(--line)) !important; border-radius: 10px !important; overflow: hidden; box-shadow: var(--card-shadow) !important; }
+.leaflet-control-scale-line { background: rgb(var(--surface) / .85); border-color: rgb(var(--fg-muted)); color: rgb(var(--fg)); }
+
+.pd-pin { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); min-width: 30px; height: 30px; padding: 0 6px;
+  display: grid; place-items: center; border-radius: 999px; background: rgb(var(--surface)); border: 2px solid var(--pc);
+  color: var(--pc); font: 700 10px/1 "JetBrains Mono", ui-monospace, monospace; box-shadow: 0 2px 8px rgb(0 0 0 / .18); cursor: pointer; }
+.pd-pin.pd-sel { background: var(--pc); color: rgb(var(--surface)); box-shadow: 0 0 0 5px color-mix(in srgb, var(--pc) 25%, transparent), 0 4px 14px rgb(0 0 0 / .25); }
+.pd-pin-label { position: absolute; left: 0; top: 19px; transform: translateX(-50%); white-space: nowrap; font: 600 11px/1.2 Inter, sans-serif;
+  color: rgb(var(--fg)); background: rgb(var(--surface) / .88); padding: 2px 6px; border-radius: 6px; pointer-events: none; box-shadow: 0 1px 3px rgb(0 0 0 / .12); }
+.pd-k-foh { --pc: rgb(var(--aud)); } .pd-k-rx { --pc: rgb(var(--aud)); } .pd-k-wireless { --pc: rgb(var(--med)); }
+.pd-k-camera { --pc: rgb(var(--vid)); } .pd-k-operator { --pc: rgb(var(--fg-soft)); } .pd-k-stage { --pc: rgb(var(--cg)); } .pd-k-other { --pc: rgb(var(--fg-muted)); }
+.pd-k-foh { min-width: 40px; height: 34px; font-size: 11px; }
+.pd-pin.pd-st-ok::after, .pd-pin.pd-st-marginal::after, .pd-pin.pd-st-fail::after { content: ""; position: absolute; right: -3px; top: -3px; width: 11px; height: 11px;
+  border-radius: 99px; border: 2px solid rgb(var(--surface)); }
+.pd-pin.pd-st-ok::after { background: rgb(var(--pvw)); } .pd-pin.pd-st-marginal::after { background: rgb(var(--cg)); } .pd-pin.pd-st-fail::after { background: rgb(var(--pgm)); }
+
+.pd-link { stroke-width: 2; stroke-dasharray: 6 6; fill: none; stroke-opacity: .9; }
+.pd-link.pd-ok { stroke: rgb(var(--pvw)); } .pd-link.pd-marginal { stroke: rgb(var(--cg)); } .pd-link.pd-fail { stroke: rgb(var(--pgm)); stroke-width: 2.5; }
+.pd-link.pd-unknown { stroke: rgb(var(--fg-faint)); }
+.pd-link-sel { stroke-width: 3.5; stroke-dasharray: none; }
+.pd-ring-solid { stroke: rgb(var(--pvw)); stroke-width: 1.5; fill: rgb(var(--pvw)); fill-opacity: .04; stroke-opacity: .7; }
+.pd-ring-sel { stroke-width: 2.5; fill-opacity: .09; stroke-opacity: 1; }
+.pd-ring-max { stroke: rgb(var(--cg)); stroke-width: 1.25; stroke-dasharray: 4 6; fill: none; stroke-opacity: .8; }
+.pd-origin { stroke: rgb(var(--cg)); fill: rgb(var(--cg)); fill-opacity: 1; stroke-width: 2; }
+.pd-calib { stroke: rgb(var(--brand)); fill: rgb(var(--surface)); fill-opacity: 1; stroke-width: 3; }
+.pd-calib-line { stroke: rgb(var(--brand)); stroke-width: 2.5; stroke-dasharray: 5 5; fill: none; }
+.pd-grid { stroke: rgb(var(--line-strong)); stroke-opacity: .55; stroke-width: 1; fill: none; }
+.pd-grid-major { stroke: rgb(var(--fg-faint)); stroke-width: 1.5; fill: none; }
+.pd-grid-ds { stroke: rgb(var(--cg)); stroke-width: 2; fill: none; }
+.leaflet-tooltip.pd-tip { background: rgb(var(--surface)); color: rgb(var(--cg)); border: 1px solid rgb(var(--line)); font-size: 11px; font-weight: 600; box-shadow: none; }

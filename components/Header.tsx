@@ -190,10 +190,10 @@ function SyncPill({ state, by, canEdit, error }: { state: string; by: string | n
     saving: [<Loader2 key="s" size={11} className="animate-spin" />, "Saving…", "text-fg-muted"],
     synced: [<CheckIcon key="c" size={11} />, by ? `Saved · ${by}` : "Saved", "text-pvw"],
     offline: [<CloudOff key="o" size={11} />, "Offline — retrying", "text-cg"],
-    error: [<CloudOff key="e" size={11} />, "Sync error — retrying", "text-pgm"],
+    error: [<CloudOff key="e" size={11} />, error ? `Sync error: ${error}` : "Sync error — retrying", "text-pgm"],
   };
   const [icon, text, color] = map[state] ?? map.synced;
-  return <span title={error || (by ? `Last change by ${by}` : "")} className={cx("inline-flex max-w-[220px] shrink-0 items-center gap-1 truncate rounded-full bg-raise px-2 py-0.5 text-[11px] font-medium", color)}>{icon}<span className="truncate">{text}</span></span>;
+  return <span title={error || (by ? `Last change by ${by}` : "")} className={cx("inline-flex max-w-[360px] shrink-0 items-center gap-1 truncate rounded-full bg-raise px-2 py-0.5 text-[11px] font-medium", color)}>{icon}<span className="truncate">{text}</span></span>;
 }
 
 function Tele({ label, value, sub, valueClass }: { label: string; value: string; sub?: string; valueClass?: string }) {

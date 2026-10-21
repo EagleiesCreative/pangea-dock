@@ -1,5 +1,6 @@
 "use client";
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useAuth } from "@clerk/nextjs";
 import { seed } from "./seed";
 import { canEditRole } from "./roles";
 import type { ListKey, Show } from "./types";
@@ -39,7 +40,7 @@ export const useShow = () => {
   return c;
 };
 
-const SECTIONS: Section[] = ["event", "cues", "cameras", "inputs", "outputs", "vault", "media", "speakers", "gear", "qc", "live"];
+const SECTIONS: Section[] = ["event", "cues", "cameras", "inputs", "outputs", "vault", "media", "speakers", "gear", "qc", "live", "siteMap", "siteImage"];
 const SAVE_DEBOUNCE = 450;
 const POLL_MS = 2000;
 
@@ -53,6 +54,8 @@ function migrate(raw: unknown): Show {
     event: { ...base.event, ...(r.event ?? {}) },
     vault: { ...base.vault, ...(r.vault ?? {}) },
     live: { ...base.live, ...(r.live ?? {}) },
+    siteMap: r.siteMap ? { ...base.siteMap, ...r.siteMap, geo: { ...base.siteMap.geo, ...(r.siteMap.geo ?? {}) } } : base.siteMap,
+    siteImage: r.siteImage ?? base.siteImage,
   };
 }
 
@@ -61,10 +64,17 @@ function migrate(raw: unknown): Show {
  * - Edits apply locally at once; the changed top-level sections are queued and PATCHed (debounced).
  * - Every POLL_MS we ask for a newer version; remote sections are applied except ones with unsaved local edits.
  */
-export function ShowProvider({ children }: { children: React.ReactNode }) {
+export function ShowProvider({ children, clientRole = null }: { children: React.ReactNode; clientRole?: string | null }) {
   const [show, setShowState] = useState<Show>(() => seed());
   const [ready, setReady] = useState(false);
-  const [role, setRole] = useState<string | null>(null);
+  const { orgId } = useAuth();
+  const orgRef = useRef(orgId);
+  orgRef.current = orgId;
+  const hdrs = (extra?: Record<string, string>) => ({ ...(orgRef.current ? { "X-Org-Id": orgRef.current } : {}), ...extra });
+  const [serverRole, setRole] = useState<string | null>(null);
+  // Clerk's client-side role is known instantly; the server's answer wins once it arrives (and the API enforces it anyway).
+  const role = serverRole ?? clientRole;
+  const gotFull = useRef(false); // until one full GET succeeds, keep polling the full document (not ?since=)
   const [sync, setSync] = useState<Api["sync"]>({ state: "loading", updatedBy: null, updatedAt: null });
 
   const showRef = useRef(show);
@@ -87,7 +97,7 @@ export function ShowProvider({ children }: { children: React.ReactNode }) {
     keys.forEach((k) => ((patch as Record<string, unknown>)[k] = snap[k]));
     setSync((s) => ({ ...s, state: "saving" }));
     try {
-      const res = await fetch("/api/show", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ patch }) });
+      const res = await fetch("/api/show", { method: "PATCH", headers: hdrs({ "Content-Type": "application/json" }), body: JSON.stringify({ patch }) });
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `HTTP ${res.status}`);
       const j = await res.json();
       version.current = j.version;
@@ -111,7 +121,8 @@ export function ShowProvider({ children }: { children: React.ReactNode }) {
   /* ---------- load + poll ---------- */
   const pull = useCallback(async (initial = false) => {
     try {
-      const res = await fetch(initial ? "/api/show" : `/api/show?since=${version.current}`, { cache: "no-store" });
+      const full = initial || !gotFull.current;
+      const res = await fetch(full ? "/api/show" : `/api/show?since=${version.current}`, { cache: "no-store", headers: hdrs() });
       if (res.status === 204) {
         setSync((s) => (s.state === "offline" || s.state === "error" ? { ...s, state: dirty.current.size ? "saving" : "synced" } : s));
         return;
@@ -119,7 +130,9 @@ export function ShowProvider({ children }: { children: React.ReactNode }) {
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `HTTP ${res.status}`);
       const j = await res.json();
       setRole(j.role ?? null);
-      if (initial && !j.data && canEditRole(j.role)) {
+      const firstFull = !gotFull.current;
+      gotFull.current = true;
+      if (firstFull && !j.data && canEditRole(j.role)) {
         // Brand-new production: seed it with the demo dataset so it's usable immediately.
         SECTIONS.forEach((k) => dirty.current.add(k));
         setShowState(seed());
@@ -127,7 +140,7 @@ export function ShowProvider({ children }: { children: React.ReactNode }) {
       } else if (j.data) {
         const remote = migrate(j.data);
         setShowState((prev) => {
-          if (initial) return remote;
+          if (firstFull) return remote;
           const next = { ...prev } as Record<Section, unknown>;
           SECTIONS.forEach((k) => { if (!dirty.current.has(k)) next[k] = remote[k]; });
           return next as unknown as Show;

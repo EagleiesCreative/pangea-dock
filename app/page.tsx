@@ -1,10 +1,10 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { ClipboardCheck, ListOrdered, Network, Package, Clapperboard, Radio, Eye } from "lucide-react";
-import { OrganizationList, useAuth } from "@clerk/nextjs";
+import { ClipboardCheck, ListOrdered, Network, Package, Clapperboard, Radio, Eye, MapPinned } from "lucide-react";
+import { useAuth } from "@clerk/nextjs";
+import { ProductionPicker } from "@/components/workspace/ProductionPicker";
 import { CrewControls } from "@/components/Crew";
-import { AuthShell } from "@/components/AuthShell";
-import { roleLabel } from "@/lib/roles";
+import { isAdminRole, roleLabel } from "@/lib/roles";
 import { ShowProvider, useShow } from "@/lib/store";
 import { Header } from "@/components/Header";
 import { Ros } from "@/components/Ros";
@@ -12,12 +12,14 @@ import { CameraMatrix } from "@/components/CameraMatrix";
 import { Media } from "@/components/Media";
 import { Gear } from "@/components/Gear";
 import { Qc } from "@/components/Qc";
+import { SitePlan } from "@/components/sitemap/SitePlan";
 import { PrintBook } from "@/components/PrintBook";
 import { Badge, Progress, cx } from "@/components/ui";
 
 const TABS = [
   { id: "ros", label: "Run-of-Show", icon: ListOrdered, el: Ros },
   { id: "plot", label: "Camera Plot & Patch", icon: Network, el: CameraMatrix },
+  { id: "site", label: "Site & RF Plan", icon: MapPinned, el: SitePlan },
   { id: "media", label: "Media & CG", icon: Clapperboard, el: Media },
   { id: "gear", label: "Gear Inventory", icon: Package, el: Gear },
   { id: "qc", label: "Pre-Flight QC", icon: ClipboardCheck, el: Qc },
@@ -25,7 +27,7 @@ const TABS = [
 type TabId = (typeof TABS)[number]["id"];
 
 function Sidebar({ tab, setTab }: { tab: TabId; setTab: (t: TabId) => void }) {
-  const { show, role } = useShow();
+  const { show, role, sync } = useShow();
   const qcDone = show.qc.filter((q) => q.done).length;
   const qcPct = show.qc.length ? Math.round((qcDone / show.qc.length) * 100) : 0;
   const loaded = show.gear.filter((g) => g.loaded).length;
@@ -69,7 +71,7 @@ function Sidebar({ tab, setTab }: { tab: TabId; setTab: (t: TabId) => void }) {
       <div className="mt-4 space-y-2 border-t border-line pt-4">
         <div className="flex items-center justify-between px-1 text-[11.5px] text-fg-muted">
           <span>Production</span>
-          <Badge tone={role === "org:admin" ? "violet" : roleLabel(role) === "Editor" ? "green" : "gray"}>{roleLabel(role)}</Badge>
+          <span title={`Clerk role: ${role ?? "none"}${sync.error ? ` · ${sync.error}` : ""}`}><Badge tone={isAdminRole(role) ? "violet" : roleLabel(role) === "Editor" ? "green" : "gray"}>{roleLabel(role)}</Badge></span>
         </div>
         <CrewControls />
       </div>
@@ -151,14 +153,9 @@ function App() {
 }
 
 export default function Page() {
-  const { isLoaded, orgId } = useAuth();
+  const { isLoaded, orgId, orgRole } = useAuth();
   if (!isLoaded) return <div className="grid min-h-screen place-items-center text-xs font-medium text-fg-muted">Loading Pangea Dock…</div>;
-  if (!orgId)
-    return (
-      <AuthShell title="Choose a production" sub="Each production has its own run-of-show, crew and permissions. Create one, or open one you've been invited to.">
-        <OrganizationList hidePersonal afterSelectOrganizationUrl="/" afterCreateOrganizationUrl="/" />
-      </AuthShell>
-    );
+  if (!orgId) return <ProductionPicker />;
   // key= remounts the store when switching productions
-  return <ShowProvider key={orgId}><App /></ShowProvider>;
+  return <ShowProvider key={orgId} clientRole={orgRole ?? null}><App /></ShowProvider>;
 }

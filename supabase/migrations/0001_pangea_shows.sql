@@ -29,3 +29,6 @@ as $$
 $$;
 
 revoke all on function public.pangea_merge_show(text, jsonb, text) from public, anon, authenticated;
+
+-- Make the new table/function visible to the API immediately.
+notify pgrst, 'reload schema';

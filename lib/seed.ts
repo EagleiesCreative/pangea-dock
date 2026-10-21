@@ -1,4 +1,5 @@
 import type { Show } from "./types";
+import { seedSite } from "./siteSeed";
 
 let n = 0;
 const id = (p: string) => `${p}${++n}`;
@@ -104,5 +105,6 @@ export function seed(): Show {
       { id: id("q"), dept: "Network, Stream & Recording QC", text: "Main switcher and encoder plugged into UPS battery backup", done: true },
     ],
     live: { on: false, idx: 0, startedAt: null },
+    ...seedSite(),
   };
 }
