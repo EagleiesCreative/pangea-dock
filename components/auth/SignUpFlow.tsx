@@ -23,6 +23,10 @@ export function SignUpFlow() {
   const [verifying, setVerifying] = useState(false);
   const [busy, setBusy] = useState<"" | "form" | "google">("");
   const [error, setError] = useState("");
+  // Back from Google but Clerk still needs details (username, terms, …) → "continue" mode.
+  const [missing, setMissing] = useState<string[] | null>(null);
+  const [extra, setExtra] = useState<Record<string, string>>({});
+  const [legal, setLegal] = useState(false);
 
   // Invitation for someone who already has an account → hand off to sign-in with the ticket.
   useEffect(() => {
@@ -30,6 +34,27 @@ export function SignUpFlow() {
     if (ticketStatus === "sign_in") router.replace(`/sign-in?__clerk_ticket=${encodeURIComponent(ticket)}`);
     if (ticketStatus === "complete") router.replace("/");
   }, [ticket, ticketStatus, router]);
+
+  useEffect(() => {
+    if (!isLoaded || !signUp || !params.get("continue")) return;
+    if (signUp.status === "missing_requirements") {
+      if (signUp.unverifiedFields?.includes("email_address") && !signUp.missingFields?.length) { setEmail(signUp.emailAddress ?? ""); finish(signUp).catch((e) => setError(clerkError(e))); }
+      else setMissing(signUp.missingFields ?? []);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoaded]);
+
+  const submitMissing = (e: React.FormEvent) => {
+    e.preventDefault();
+    const upd: Record<string, unknown> = {};
+    if (missing?.includes("first_name")) upd.firstName = extra.first_name;
+    if (missing?.includes("last_name")) upd.lastName = extra.last_name;
+    if (missing?.includes("username")) upd.username = extra.username;
+    if (missing?.includes("password")) upd.password = extra.password;
+    if (missing?.includes("phone_number")) upd.phoneNumber = extra.phone_number;
+    if (missing?.includes("legal_accepted")) upd.legalAccepted = legal;
+    run(async () => { const res = await signUp!.update(upd); setMissing(res.missingFields?.length ? res.missingFields : null); await finish(res); });
+  };
 
   const finish = async (res: SignUpResource) => {
     if (res.status === "complete" && setActive) {
@@ -79,7 +104,27 @@ export function SignUpFlow() {
   return (
     <AuthLayout>
       <Brand />
-      {!verifying ? (
+      {missing && !verifying ? (
+        <>
+          <Title title="Almost there" sub="A couple more details to finish your account." />
+          <form onSubmit={submitMissing} className="space-y-4">
+            {missing.includes("first_name") && <Field label="First name"><Input required value={extra.first_name ?? ""} onChange={(e) => setExtra({ ...extra, first_name: e.target.value })} /></Field>}
+            {missing.includes("last_name") && <Field label="Last name"><Input required value={extra.last_name ?? ""} onChange={(e) => setExtra({ ...extra, last_name: e.target.value })} /></Field>}
+            {missing.includes("username") && <Field label="Username"><Input required autoComplete="username" value={extra.username ?? ""} onChange={(e) => setExtra({ ...extra, username: e.target.value.trim() })} /></Field>}
+            {missing.includes("phone_number") && <Field label="Phone number"><Input required type="tel" placeholder="+62…" value={extra.phone_number ?? ""} onChange={(e) => setExtra({ ...extra, phone_number: e.target.value })} /></Field>}
+            {missing.includes("password") && <Field label="Password"><PasswordInput required minLength={8} autoComplete="new-password" value={extra.password ?? ""} onChange={(e) => setExtra({ ...extra, password: e.target.value })} /></Field>}
+            {missing.includes("legal_accepted") && (
+              <label className="flex items-start gap-2.5 text-[13px] text-fg-soft"><input type="checkbox" className="mt-0.5 h-4 w-4 accent-[rgb(var(--brand))]" checked={legal} onChange={(e) => setLegal(e.target.checked)} required /> I agree to the Terms of Service and Privacy Policy.</label>
+            )}
+            {missing.filter((f) => !["first_name", "last_name", "username", "phone_number", "password", "legal_accepted"].includes(f)).length > 0 && (
+              <ErrorText>This site also requires: {missing.filter((f) => !["first_name", "last_name", "username", "phone_number", "password", "legal_accepted"].includes(f)).join(", ")}. Ask the admin to adjust Clerk's sign-up settings.</ErrorText>
+            )}
+            <div id="clerk-captcha" />
+            <ErrorText>{error}</ErrorText>
+            <Primary type="submit" loading={busy === "form"}>Continue</Primary>
+          </form>
+        </>
+      ) : !verifying ? (
         <>
           <Title
             title={ticket ? "You're invited" : "Create your account"}

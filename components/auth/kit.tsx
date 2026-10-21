@@ -8,7 +8,16 @@ import { ThemeToggle } from "@/components/Theme";
 
 /* ---------------- Errors ---------------- */
 export function clerkError(e: unknown): string {
-  if (isClerkAPIResponseError(e)) return e.errors[0]?.longMessage || e.errors[0]?.message || "Something went wrong.";
+  if (isClerkAPIResponseError(e)) {
+    const err = e.errors[0];
+    const text = `${err?.longMessage ?? ""} ${err?.message ?? ""}`;
+    // Social provider not enabled on this Clerk instance (typical on a fresh production instance).
+    if (/oauth_\w+.*(allowed values|not enabled)|strategy.*oauth_/i.test(text)) {
+      const provider = text.match(/oauth_(\w+)/)?.[1] ?? "social";
+      return `${provider[0].toUpperCase()}${provider.slice(1)} sign-in isn't switched on for this site yet. Use email and password for now — an admin needs to enable it in Clerk.`;
+    }
+    return err?.longMessage || err?.message || "Something went wrong.";
+  }
   if (e instanceof Error) return e.message;
   return "Something went wrong.";
 }

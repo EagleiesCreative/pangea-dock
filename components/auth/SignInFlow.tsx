@@ -59,6 +59,16 @@ export function SignInFlow() {
     try { await fn(); } catch (e) { setError(clerkError(e)); } finally { setBusy(""); }
   };
 
+  // Back from Google with a pending step (e.g. 2-step verification) → continue it here.
+  const resumed = useRef(false);
+  useEffect(() => {
+    if (!isLoaded || resumed.current || !params.get("resume") || !signIn) return;
+    resumed.current = true;
+    if (signIn.status === "needs_second_factor" || signIn.status === "complete") run(async () => { await go(signIn); });
+    else if (signIn.status === "needs_new_password") setStep({ k: "forgot", sent: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoaded]);
+
   // Organization invitations land here with a ticket for existing users.
   useEffect(() => {
     if (!isLoaded || !ticket || ticketTried.current) return;
