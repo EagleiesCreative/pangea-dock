@@ -7,7 +7,7 @@ import type { Show } from "@/lib/types";
 export const dynamic = "force-dynamic";
 
 // Top-level sections a client may write. Anything else in a patch is ignored.
-const SECTIONS: (keyof Show)[] = ["event", "cues", "cameras", "inputs", "outputs", "vault", "media", "speakers", "gear", "qc", "live", "siteMap", "siteImage"];
+const SECTIONS: (keyof Show)[] = ["event", "cues", "cameras", "inputs", "outputs", "vault", "media", "speakers", "gear", "gearCats", "qc", "live", "siteMap", "siteImage"];
 const MAX_BYTES = 6_000_000; // floor-plan images are stored inline (compressed client-side)
 
 function fail(e: unknown) {

@@ -45,10 +45,10 @@ export function productionBookCsv(s: Show): string {
     ...sec("SWITCHER OUTPUTS", ["Port", "Destination", "Res", "Include CG"],
       s.outputs.map((o) => [o.port, o.dest, o.res, yn(o.cg)])),
     ...sec("STREAM VAULT (key omitted)", ["Primary", "Backup", "Bitrate kbps"], [[s.vault.primary, s.vault.backup, s.vault.bitrate]]),
-    ...sec("MEDIA", ["Asset ID", "File", "Category", "Duration", "Audio", "Slot", "QC"],
-      s.media.map((m) => [m.assetId, m.file, m.category, m.dur, m.audio, m.slot, m.qc])),
-    ...sec("SPEAKERS", ["Order", "Name", "Title", "Phonetic", "Cue", "CG Template"],
-      s.speakers.map((p) => [p.order, p.name, p.title, p.phonetic, p.cue, p.template])),
+    ...sec("MEDIA", ["Asset ID", "File", "Link", "Category", "Duration", "Audio", "Slot", "QC"],
+      s.media.map((m) => [m.assetId, m.file, m.link ?? "", m.category, m.dur, m.audio, m.slot, m.qc])),
+    ...sec("SPEAKERS", ["Order", "Name", "Title", "Phonetic", "Cue", "CG Template", "Link"],
+      s.speakers.map((p) => [p.order, p.name, p.title, p.phonetic, p.cue, p.template, p.link ?? ""])),
     ...sec("GEAR", ["Category", "Item", "Qty", "Tag", "Notes", "Packed", "Loaded In", "Packed Out"],
       s.gear.map((g) => [g.cat, g.name, g.qty, g.tag, g.notes, yn(g.packed), yn(g.loaded), yn(g.out)])),
     ...sec("PRE-FLIGHT QC", ["Department", "Check", "Done"], s.qc.map((q) => [q.dept, q.text, yn(q.done)])),
@@ -59,9 +59,9 @@ export function productionBookCsv(s: Show): string {
 export function speakerRows(s: Show) {
   return [...s.speakers]
     .sort((a, b) => a.order - b.order)
-    .map((p) => ({ Order: p.order, Name: p.name, Title: p.title, Phonetic: p.phonetic, Cue: p.cue, Template: p.template }));
+    .map((p) => ({ Order: p.order, Name: p.name, Title: p.title, Phonetic: p.phonetic, Cue: p.cue, Template: p.template, Link: p.link ?? "" }));
 }
 export function speakersCsv(s: Show) {
   const rows = speakerRows(s);
-  return toCsv([Object.keys(rows[0] ?? { Order: 0, Name: "", Title: "", Phonetic: "", Cue: "", Template: "" }), ...rows.map((r) => Object.values(r))]);
+  return toCsv([Object.keys(rows[0] ?? { Order: 0, Name: "", Title: "", Phonetic: "", Cue: "", Template: "", Link: "" }), ...rows.map((r) => Object.values(r))]);
 }

@@ -116,3 +116,27 @@ export function TableWrap({ children, className }: { children: React.ReactNode; 
     </div>
   );
 }
+
+/** URL input + open-in-new-tab. The open icon is a plain <a>, so view-only users can still follow it. */
+export function LinkCell({ value, onChange, placeholder = "https://…" }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
+  const href = toHref(value);
+  return (
+    <div className="flex items-center gap-1">
+      <input className="cell cell-mono min-w-0 flex-1 !text-[12px]" value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value.trim())} spellCheck={false} />
+      {href ? (
+        <a href={href} target="_blank" rel="noopener noreferrer" title={`Open ${href}`}
+          className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-brand transition hover:bg-brand-soft">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M15 3h6v6" /><path d="M10 14 21 3" /><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /></svg>
+        </a>
+      ) : <span className="h-7 w-7 shrink-0" />}
+    </div>
+  );
+}
+/** Accepts "drive.google.com/…", "https://…", "smb://…"; rejects plain words and javascript: URLs. */
+export function toHref(v?: string | null): string | null {
+  const t = (v ?? "").trim();
+  if (!t) return null;
+  if (/^(https?|smb|afp|ftp|sftp):\/\//i.test(t)) return t;
+  if (/^[\w-]+(\.[\w-]+)+(\/\S*)?$/i.test(t)) return `https://${t}`;
+  return null;
+}

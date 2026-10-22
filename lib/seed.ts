@@ -1,6 +1,8 @@
 import type { Show } from "./types";
 import { seedSite } from "./siteSeed";
 
+export const DEFAULT_GEAR_CATS = ["Cameras & Optics", "Video Switching & Capture", "Audio & Intercom (Comms)", "SDI / Fiber / Network Cabling", "Power, UPS & Rigging"];
+
 let n = 0;
 const id = (p: string) => `${p}${++n}`;
 
@@ -72,6 +74,7 @@ export function seed(): Show {
       { id: id("s"), order: 4, name: "Sari Putri", title: "Demo Lead, Solutions Engineering", phonetic: "SAH-ree POO-tree", cue: "A03", template: "LT-Demo-1Line" },
       { id: id("s"), order: 5, name: "Yusuf Rahman", title: "Industry Analyst — TechAsia", phonetic: "YOO-soof rah-MAHN", cue: "A04", template: "LT-QA-Left" },
     ],
+    gearCats: [...DEFAULT_GEAR_CATS],
     gear: [
       { id: id("g"), cat: "Cameras & Optics", name: "Sony FX6 camera body", qty: 2, tag: "CAM-FX6-01/02", notes: "Batteries ×6 each", packed: true, loaded: true, out: false },
       { id: id("g"), cat: "Cameras & Optics", name: "Sony FX9 camera body", qty: 1, tag: "CAM-FX9-01", notes: "", packed: true, loaded: true, out: false },

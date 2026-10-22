@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { FileDown, Plus, Trash2 } from "lucide-react";
 import { uid, useShow } from "@/lib/store";
 import { download, slug, speakerRows, speakersCsv } from "@/lib/export";
-import { Badge, Cell, IconBtn, SectionHead, Sel, TableWrap, cx } from "./ui";
+import { Badge, Cell, IconBtn, LinkCell, SectionHead, Sel, TableWrap, cx } from "./ui";
 import type { AudioMode, MediaAsset, MediaCategory, MediaQc, Speaker } from "@/lib/types";
 
 const CATS: MediaCategory[] = ["Sponsor Loop", "Video Bumper (VT)", "Stinger Transition", "Walk-In Audio", "Emergency Slate"];
@@ -30,11 +30,11 @@ export function Media() {
             <option value="All">All categories</option>
             {CATS.map((c) => <option key={c}>{c}</option>)}
           </select>
-          <button className="btn" onClick={() => add("media", { id: uid(), assetId: nextAssetId(), file: "", category: filter === "All" ? "Video Bumper (VT)" : filter, dur: "00:30", audio: "AFV", slot: "", qc: "Missing" } as MediaAsset)}><Plus size={14} /> Add asset</button>
+          <button className="btn" onClick={() => add("media", { id: uid(), assetId: nextAssetId(), file: "", category: filter === "All" ? "Video Bumper (VT)" : filter, dur: "00:30", audio: "AFV", slot: "", qc: "Missing", link: "" } as MediaAsset)}><Plus size={14} /> Add asset</button>
         </SectionHead>
         <TableWrap>
           <thead><tr>
-            <th className="th w-[100px]">Asset ID</th><th className="th min-w-[240px]">File Name</th><th className="th w-[170px]">Category</th>
+            <th className="th w-[100px]">Asset ID</th><th className="th min-w-[240px]">File Name</th><th className="th min-w-[220px]">Link</th><th className="th w-[170px]">Category</th>
             <th className="th w-[84px]">Duration</th><th className="th w-[100px]">Audio Mode</th><th className="th min-w-[180px]">Target Switcher Slot</th>
             <th className="th w-[130px]">QC Status</th><th className="th w-[44px]" />
           </tr></thead>
@@ -43,6 +43,7 @@ export function Media() {
               <tr key={m.id} className="border-t border-line">
                 <td className="td"><Cell mono value={m.assetId} onChange={(v) => patch("media", m.id, { assetId: v })} className="!text-med font-bold" /></td>
                 <td className="td"><Cell mono value={m.file} onChange={(v) => patch("media", m.id, { file: v })} placeholder="file_name.mov" /></td>
+                <td className="td"><LinkCell value={m.link ?? ""} onChange={(v) => patch("media", m.id, { link: v })} placeholder="Drive / Dropbox / NAS link" /></td>
                 <td className="td"><Sel value={m.category} options={CATS} onChange={(v) => patch("media", m.id, { category: v })} /></td>
                 <td className="td"><Cell mono value={m.dur} onChange={(v) => patch("media", m.id, { dur: v })} /></td>
                 <td className="td"><Sel value={m.audio} options={AUDIO} onChange={(v) => patch("media", m.id, { audio: v })} /></td>
@@ -55,7 +56,7 @@ export function Media() {
                 <td className="td !align-middle"><IconBtn title="Delete asset" danger onClick={() => remove("media", m.id)}><Trash2 size={15} /></IconBtn></td>
               </tr>
             ))}
-            {rows.length === 0 && <tr><td colSpan={8} className="p-6 text-center text-sm text-fg-muted">No assets in this category.</td></tr>}
+            {rows.length === 0 && <tr><td colSpan={9} className="p-6 text-center text-sm text-fg-muted">No assets in this category.</td></tr>}
           </tbody>
         </TableWrap>
         <div className="mt-1.5 flex gap-2">
@@ -67,12 +68,12 @@ export function Media() {
         <SectionHead title="Speaker & Lower-Third (CG) Database" accent="bg-cg" sub={`${speakers.length} speakers`}>
           <button className="btn" onClick={() => download(`${slug(show.event.name)}-lower-thirds.json`, JSON.stringify(speakerRows(show), null, 2), "application/json")}><FileDown size={14} /> Export JSON for vMix</button>
           <button className="btn" onClick={() => download(`${slug(show.event.name)}-lower-thirds.csv`, speakersCsv(show), "text/csv")}><FileDown size={14} /> Export CSV for vMix</button>
-          <button className="btn" onClick={() => add("speakers", { id: uid(), order: Math.max(0, ...show.speakers.map((s) => s.order)) + 1, name: "", title: "", phonetic: "", cue: "", template: "LT-2Line" } as Speaker)}><Plus size={14} /> Add speaker</button>
+          <button className="btn" onClick={() => add("speakers", { id: uid(), order: Math.max(0, ...show.speakers.map((s) => s.order)) + 1, name: "", title: "", phonetic: "", cue: "", template: "LT-2Line", link: "" } as Speaker)}><Plus size={14} /> Add speaker</button>
         </SectionHead>
         <TableWrap>
           <thead><tr>
             <th className="th w-[64px]">Order</th><th className="th min-w-[180px]">Full Display Name</th><th className="th min-w-[260px]">Title / Organization</th>
-            <th className="th min-w-[190px]">Phonetic Pronunciation</th><th className="th w-[110px]">Assigned Cue</th><th className="th min-w-[160px]">CG Template Layer</th><th className="th w-[44px]" />
+            <th className="th min-w-[190px]">Phonetic Pronunciation</th><th className="th min-w-[200px]">Link</th><th className="th w-[110px]">Assigned Cue</th><th className="th min-w-[160px]">CG Template Layer</th><th className="th w-[44px]" />
           </tr></thead>
           <tbody>
             {speakers.map((s) => (
@@ -81,6 +82,7 @@ export function Media() {
                 <td className="td"><Cell value={s.name} onChange={(v) => patch("speakers", s.id, { name: v })} className="font-medium" placeholder="Full name" /></td>
                 <td className="td"><Cell value={s.title} onChange={(v) => patch("speakers", s.id, { title: v })} placeholder="Title / Organization" /></td>
                 <td className="td"><Cell value={s.phonetic} onChange={(v) => patch("speakers", s.id, { phonetic: v })} className="italic text-fg-soft" placeholder="PRO-nun-see-AY-shun" /></td>
+                <td className="td"><LinkCell value={s.link ?? ""} onChange={(v) => patch("speakers", s.id, { link: v })} placeholder="Headshot / slides / bio" /></td>
                 <td className="td"><Sel value={s.cue} options={["", ...cues]} onChange={(v) => patch("speakers", s.id, { cue: v })} mono /></td>
                 <td className="td"><Cell mono value={s.template} onChange={(v) => patch("speakers", s.id, { template: v })} className={cx("!text-cg")} /></td>
                 <td className="td !align-middle"><IconBtn title="Delete speaker" danger onClick={() => remove("speakers", s.id)}><Trash2 size={15} /></IconBtn></td>

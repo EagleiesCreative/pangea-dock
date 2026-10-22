@@ -40,7 +40,7 @@ export const useShow = () => {
   return c;
 };
 
-const SECTIONS: Section[] = ["event", "cues", "cameras", "inputs", "outputs", "vault", "media", "speakers", "gear", "qc", "live", "siteMap", "siteImage"];
+const SECTIONS: Section[] = ["event", "cues", "cameras", "inputs", "outputs", "vault", "media", "speakers", "gear", "gearCats", "qc", "live", "siteMap", "siteImage"];
 const SAVE_DEBOUNCE = 450;
 const POLL_MS = 2000;
 
@@ -56,6 +56,8 @@ function migrate(raw: unknown): Show {
     live: { ...base.live, ...(r.live ?? {}) },
     siteMap: r.siteMap ? { ...base.siteMap, ...r.siteMap, geo: { ...base.siteMap.geo, ...(r.siteMap.geo ?? {}) } } : base.siteMap,
     siteImage: r.siteImage ?? base.siteImage,
+    // Older shows have no section list: start from the defaults + any category already used by an item.
+    gearCats: r.gearCats ?? [...new Set([...base.gearCats, ...(r.gear ?? []).map((g) => g.cat).filter(Boolean)])],
   };
 }
 

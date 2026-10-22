@@ -12,12 +12,8 @@ export type MediaCategory =
   | "Emergency Slate";
 export type AudioMode = "AFV" | "Mute" | "Loop";
 export type MediaQc = "Missing" | "Loaded" | "QC Verified";
-export type GearCategory =
-  | "Cameras & Optics"
-  | "Video Switching & Capture"
-  | "Audio & Intercom (Comms)"
-  | "SDI / Fiber / Network Cabling"
-  | "Power, UPS & Rigging";
+/** Gear sections are user-defined (see Show.gearCats); an item stores its section name. */
+export type GearCategory = string;
 export type QcDept = "Video & Color QC" | "Audio & Comms QC" | "Network, Stream & Recording QC";
 
 export interface Cue {
@@ -76,6 +72,8 @@ export interface MediaAsset {
   audio: AudioMode;
   slot: string;
   qc: MediaQc;
+  /** Where the file lives (Drive / Dropbox / Frame.io / NAS share…). */
+  link?: string;
 }
 export interface Speaker {
   id: string;
@@ -85,6 +83,8 @@ export interface Speaker {
   phonetic: string;
   cue: string;
   template: string;
+  /** Headshot, slides, bio or social link. */
+  link?: string;
 }
 export interface GearItem {
   id: string;
@@ -143,6 +143,8 @@ export interface Show {
   media: MediaAsset[];
   speakers: Speaker[];
   gear: GearItem[];
+  /** Ordered, user-editable gear sections. */
+  gearCats: string[];
   qc: QcItem[];
   live: { on: boolean; idx: number; startedAt: number | null };
   siteMap: SiteMap;

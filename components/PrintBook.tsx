@@ -34,11 +34,11 @@ export function PrintBook({ onClose }: { onClose: () => void }) {
       <H>Outputs / Aux</H>
       <T head={["Port", "Destination", "Res", "CG"]} rows={s.outputs.map((o) => [o.port, o.dest, o.res, yn(o.cg)])} />
       <H>Media &amp; Sponsors</H>
-      <T head={["Asset", "File", "Category", "Dur", "Audio", "Slot", "QC"]} rows={s.media.map((m) => [m.assetId, m.file, m.category, m.dur, m.audio, m.slot, m.qc])} />
+      <T head={["Asset", "File", "Link", "Category", "Dur", "Audio", "Slot", "QC"]} rows={s.media.map((m) => [m.assetId, m.file, m.link ?? "", m.category, m.dur, m.audio, m.slot, m.qc])} />
       <H>Speakers / Lower Thirds</H>
-      <T head={["#", "Name", "Title", "Phonetic", "Cue", "Template"]} rows={[...s.speakers].sort((a, b) => a.order - b.order).map((p) => [p.order, p.name, p.title, p.phonetic, p.cue, p.template])} />
+      <T head={["#", "Name", "Title", "Phonetic", "Cue", "Template", "Link"]} rows={[...s.speakers].sort((a, b) => a.order - b.order).map((p) => [p.order, p.name, p.title, p.phonetic, p.cue, p.template, p.link ?? ""])} />
       <H>Gear Inventory</H>
-      <T head={["Category", "Item", "Qty", "Tag", "Packed", "Loaded", "Out", "Notes"]} rows={s.gear.map((g) => [g.cat, g.name, g.qty, g.tag, yn(g.packed), yn(g.loaded), yn(g.out), g.notes])} />
+      <T head={["Section", "Item", "Qty", "Tag", "Packed", "Loaded", "Out", "Notes"]} rows={[...s.gear].sort((a, b) => s.gearCats.indexOf(a.cat) - s.gearCats.indexOf(b.cat)).map((g) => [g.cat, g.name, g.qty, g.tag, yn(g.packed), yn(g.loaded), yn(g.out), g.notes])} />
       <H>Pre-Flight QC</H>
       <T head={["Department", "Check", "Done"]} rows={s.qc.map((q) => [q.dept, q.text, yn(q.done)])} />
       <p className="text-[10px] text-gray-500">Stream credentials intentionally omitted from printed output.</p>
