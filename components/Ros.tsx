@@ -27,7 +27,7 @@ const blank = (): Cue => ({ id: uid(), kind: "cue", num: "", dur: "01:00", title
 const blankSection = (): Cue => ({ id: uid(), kind: "section", num: "", dur: "10:00", title: "New section", source: "", audio: "", cg: "", notes: "" });
 
 export function Ros() {
-  const { show, patch, patchEvent, add, remove, dup, setShow, canEdit } = useShow();
+  const { show, patch, patchEvent, add, remove, dup, setShow, canEdit, orgId } = useShow();
   const [modal, setModal] = React.useState<null | "msg" | "perf" | "import">(null);
   const [thread, setThread] = React.useState<string | null>(null);
 
@@ -133,7 +133,7 @@ export function Ros() {
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <ToolBtn active={follow} onClick={() => setFollowSaved(!follow)} title="Keep the on-air cue in view while the show runs"><Crosshair size={14} /> Follow live</ToolBtn>
-        <ToolBtn href="/timer" title="Full-screen presenter countdown (opens a new tab)"><Timer size={14} /> Stage timer</ToolBtn>
+        <ToolBtn href={orgId ? `/timer/${orgId}` : "/timer"} title="Full-screen presenter countdown for this production (opens a new tab, crew sign-in required)"><Timer size={14} /> Stage timer</ToolBtn>
         {canEdit && (
           <button className={cx("btn !py-1.5 text-xs", show.stageMsg && "!border-cg/50 !bg-cg/10")} onClick={() => setModal("msg")}>
             <Megaphone size={14} className={show.stageMsg ? "text-cg" : ""} /> Stage message

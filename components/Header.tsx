@@ -31,7 +31,7 @@ function fmtVariance(sec: number) {
 }
 
 export function Header({ onPrint }: { onPrint: () => void }) {
-  const { show, patchEvent, setLive, go, prev, resetTimer, replaceAll, reset, canEdit, sync, serverNow } = useShow();
+  const { show, patchEvent, setLive, go, prev, resetTimer, replaceAll, reset, canEdit, sync, serverNow, orgId } = useShow();
   const now = useNow(serverNow);
   const fileRef = useRef<HTMLInputElement>(null);
   const [menu, setMenu] = useState(false);
@@ -110,7 +110,7 @@ export function Header({ onPrint }: { onPrint: () => void }) {
             {menu && (
               <div className="absolute right-0 top-full z-50 mt-2 w-64 rounded-xl border border-line bg-surface p-1.5 shadow-xl shadow-black/5" onMouseLeave={() => setMenu(false)}>
                 <MenuItem icon={<Link2 size={14} />} onClick={() => { setModal("share"); setMenu(false); }}>Guest pass · link & QR{show.share?.token ? <span className="ml-auto h-1.5 w-1.5 rounded-full bg-pvw" /> : null}</MenuItem>
-                <MenuItem icon={<MonitorPlay size={14} />} onClick={() => { window.open("/timer", "_blank"); setMenu(false); }}>Stage timer (new tab)</MenuItem>
+                <MenuItem icon={<MonitorPlay size={14} />} onClick={() => { window.open(orgId ? `/timer/${orgId}` : "/timer", "_blank"); setMenu(false); }}>Stage timer (new tab)</MenuItem>
                 <MenuItem icon={<History size={14} />} onClick={() => { setModal("history"); setMenu(false); }}>Version history</MenuItem>
                 <div className="my-1 h-px bg-line" />
                 <MenuItem icon={<Download size={14} />} onClick={() => { exportJson(); setMenu(false); }}>Production book · JSON</MenuItem>
