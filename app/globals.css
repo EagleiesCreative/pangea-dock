@@ -138,3 +138,7 @@ body {
 .pd-grid-major { stroke: rgb(var(--fg-faint)); stroke-width: 1.5; fill: none; }
 .pd-grid-ds { stroke: rgb(var(--cg)); stroke-width: 2; fill: none; }
 .leaflet-tooltip.pd-tip { background: rgb(var(--surface)); color: rgb(var(--cg)); border: 1px solid rgb(var(--line)); font-size: 11px; font-weight: 600; box-shadow: none; }
+
+/* Stage message "flash" — hard on/off so it reads from across a stage. */
+@keyframes stageflash { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+@media (prefers-reduced-motion: reduce) { [class*="stageflash"] { animation: none !important; } }

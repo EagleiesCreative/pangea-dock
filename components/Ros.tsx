@@ -1,17 +1,41 @@
 "use client";
 import React from "react";
-import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, CopyPlus, FolderPlus, GripVertical, Plus, Trash2, ListPlus } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, CopyPlus, Crosshair, FileSpreadsheet, FolderPlus, GripVertical, Plus, Trash2, ListPlus, Megaphone, ScrollText, Timer } from "lucide-react";
 import { blockRange, moveBlock, reorder, resolveDrop, type DropPos } from "@/lib/reorder";
 import { uid, useShow } from "@/lib/store";
 import { computeTimes, fmtHMS, fmtMS, fmtSigned, nextPlayable, parseHMS } from "@/lib/time";
 import { Area, Badge, Cell, DurationCell, IconBtn, SectionHead, Sel, TableWrap, cx } from "./ui";
+import { CommentBtn, CommentThread } from "./Comments";
+import { StageMsgModal } from "./live/StageMsgModal";
+import { PerfLogModal } from "./live/PerfLogModal";
+import { ImportCsvModal } from "./ImportCsvModal";
 import type { Cue } from "@/lib/types";
+
+/** Looks like .btn but is an <a>, so it keeps working for viewers inside the read-only <fieldset disabled>. */
+function ToolBtn({ children, onClick, href, active, title }: { children: React.ReactNode; onClick?: () => void; href?: string; active?: boolean; title?: string }) {
+  return (
+    <a href={href ?? "#"} title={title} role={href ? undefined : "button"} aria-pressed={href ? undefined : active}
+      target={href ? "_blank" : undefined} rel={href ? "noreferrer" : undefined}
+      onClick={(e) => { if (!href) e.preventDefault(); onClick?.(); }}
+      className={cx("btn !py-1.5 text-xs", active && "!border-brand/40 !bg-brand-soft !text-brand")}>
+      {children}
+    </a>
+  );
+}
 
 const blank = (): Cue => ({ id: uid(), kind: "cue", num: "", dur: "01:00", title: "New segment", source: "", audio: "", cg: "", notes: "" });
 const blankSection = (): Cue => ({ id: uid(), kind: "section", num: "", dur: "10:00", title: "New section", source: "", audio: "", cg: "", notes: "" });
 
 export function Ros() {
   const { show, patch, patchEvent, add, remove, dup, setShow, canEdit } = useShow();
+  const [modal, setModal] = React.useState<null | "msg" | "perf" | "import">(null);
+  const [thread, setThread] = React.useState<string | null>(null);
+
+  /* ---------- follow the live cue ---------- */
+  const [follow, setFollow] = React.useState(true);
+  React.useEffect(() => { try { setFollow(localStorage.getItem("pangeadock.follow") !== "0"); } catch {} }, []);
+  const setFollowSaved = (b: boolean) => { setFollow(b); try { localStorage.setItem("pangeadock.follow", b ? "1" : "0"); } catch {} };
+  const liveId = show.live.on ? show.cues[show.live.idx]?.id : undefined;
 
   /* ---------- drag & drop ---------- */
   const [drag, setDrag] = React.useState<string | null>(null);
@@ -76,6 +100,16 @@ export function Ros() {
   const pvwIdx = show.live.on ? nextPlayable(show.cues, idx) : -1;
   const [collapsed, setCollapsed] = React.useState<Set<string>>(new Set());
   const toggle = (id: string) => setCollapsed((c) => { const n = new Set(c); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  React.useEffect(() => {
+    if (!follow || !liveId) return;
+    // Open the section the live cue is in, then bring the row to the middle of the screen.
+    const sec = times.find((r) => r.cue.id === liveId)?.sectionId;
+    if (sec && collapsed.has(sec)) { setCollapsed((c) => { const n = new Set(c); n.delete(sec); return n; }); return; }
+    const el = document.querySelector<HTMLElement>(`[data-cue-row="${liveId}"]`);
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [follow, liveId, collapsed]); // eslint-disable-line react-hooks/exhaustive-deps
+  const comments = show.comments ?? [];
+  const openComments = comments.filter((c) => !c.resolved && show.cues.some((q) => q.id === c.cueId)).length;
   const cueCount = show.cues.filter((c) => c.kind !== "section").length;
   const secCount = show.cues.length - cueCount;
 
@@ -97,6 +131,24 @@ export function Ros() {
         <button className="btn" onClick={() => add("cues", blank())}><Plus size={14} /> Add cue</button>
       </SectionHead>
 
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <ToolBtn active={follow} onClick={() => setFollowSaved(!follow)} title="Keep the on-air cue in view while the show runs"><Crosshair size={14} /> Follow live</ToolBtn>
+        <ToolBtn href="/timer" title="Full-screen presenter countdown (opens a new tab)"><Timer size={14} /> Stage timer</ToolBtn>
+        {canEdit && (
+          <button className={cx("btn !py-1.5 text-xs", show.stageMsg && "!border-cg/50 !bg-cg/10")} onClick={() => setModal("msg")}>
+            <Megaphone size={14} className={show.stageMsg ? "text-cg" : ""} /> Stage message
+            {show.stageMsg && <span className="max-w-[160px] truncate font-semibold text-fg">· {show.stageMsg.text}</span>}
+          </button>
+        )}
+        <ToolBtn onClick={() => setModal("perf")} title="As-run log: what went to air, when and who called it"><ScrollText size={14} /> Proof of performance{show.perfLog?.length ? <span className="text-fg-muted">· {show.perfLog.length}</span> : null}</ToolBtn>
+        {openComments > 0 && <span className="text-xs text-fg-muted">{openComments} open comment{openComments === 1 ? "" : "s"}</span>}
+        {canEdit && <button className="btn ml-auto !py-1.5 text-xs" onClick={() => setModal("import")}><FileSpreadsheet size={14} /> Import CSV / Sheets</button>}
+      </div>
+      <StageMsgModal open={modal === "msg"} onClose={() => setModal(null)} />
+      <PerfLogModal open={modal === "perf"} onClose={() => setModal(null)} />
+      <ImportCsvModal open={modal === "import"} onClose={() => setModal(null)} />
+      <CommentThread cueId={thread} onClose={() => setThread(null)} />
+
       <datalist id="cg-options">{[...speakerCgs, ...mediaCgs].map((o) => <option key={o} value={o} />)}</datalist>
       <TableWrap>
         <thead>
@@ -110,7 +162,7 @@ export function Ros() {
             <th className="th min-w-[210px]">Audio Cue</th>
             <th className="th min-w-[190px]">CG / Lower Third</th>
             <th className="th min-w-[240px]">TD &amp; Stage Notes</th>
-            <th className="th w-[180px]">Actions</th>
+            <th className="th w-[212px]">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -125,7 +177,7 @@ export function Ros() {
               const open = !collapsed.has(cue.id);
               const kids = times.filter((r) => r.sectionId === cue.id).length;
               return (
-                <tr key={cue.id} {...dropProps(cue.id)} className={cx("border-t border-line bg-brand-soft/60", isPgm && "!bg-pgm/10", past && "opacity-45", dropCls(cue.id, i))}>
+                <tr key={cue.id} data-cue-row={cue.id} {...dropProps(cue.id)} className={cx("border-t border-line bg-brand-soft/60", isPgm && "!bg-pgm/10", past && "opacity-45", dropCls(cue.id, i))}>
                   <td className={cx("td border-l-[3px] !align-middle", isPgm ? "border-l-pgm" : isPvw ? "border-l-pvw" : "border-l-brand")}>
                     <div className="flex items-center gap-1">
                     {handle(cue.id)}
@@ -156,6 +208,7 @@ export function Ros() {
                     </div>
                   </td>
                   <td className="td whitespace-nowrap">
+                    <CommentBtn cue={cue} onOpen={setThread} />
                     <IconBtn title="Insert cue below" onClick={() => add("cues", blank(), cue.id)}><ListPlus size={15} /></IconBtn>
                     <IconBtn title="Move section (with its cues) up" disabled={i === 0} onClick={() => applyOrder((c) => moveBlock(c, cue.id, -1))}><ArrowUp size={15} /></IconBtn>
                     <IconBtn title="Move section (with its cues) down" disabled={blockRange(show.cues, cue.id)[1] === times.length - 1} onClick={() => applyOrder((c) => moveBlock(c, cue.id, 1))}><ArrowDown size={15} /></IconBtn>
@@ -166,7 +219,7 @@ export function Ros() {
               );
             }
             return (
-              <tr key={cue.id} {...dropProps(cue.id)} className={cx("border-t border-line", isPgm && "bg-pgm/10", isPvw && "bg-pvw/[0.07]", past && "opacity-45", dropCls(cue.id, i))}>
+              <tr key={cue.id} data-cue-row={cue.id} {...dropProps(cue.id)} className={cx("border-t border-line", isPgm && "bg-pgm/10", isPvw && "bg-pvw/[0.07]", past && "opacity-45", dropCls(cue.id, i))}>
                 <td className={cx("td border-l-[3px] !align-middle", isPgm ? "border-l-pgm" : isPvw ? "border-l-pvw" : "border-l-transparent")}>
                   <div className="flex items-center gap-1">
                     {handle(cue.id)}
@@ -185,6 +238,7 @@ export function Ros() {
                 </td>
                 <td className="td"><Area value={cue.notes} onChange={(v) => patch("cues", cue.id, { notes: v })} className="text-fg-soft" /></td>
                 <td className="td whitespace-nowrap">
+                  <CommentBtn cue={cue} onOpen={setThread} />
                   <IconBtn title="Insert cue below" onClick={() => add("cues", blank(), cue.id)}><ListPlus size={15} /></IconBtn>
                   <IconBtn title="Insert section below" onClick={() => add("cues", blankSection(), cue.id)}><FolderPlus size={15} /></IconBtn>
                   <IconBtn title="Move up" disabled={i === 0} onClick={() => applyOrder((c) => reorder(c, cue.id, c[i - 1].id, "before"))}><ArrowUp size={15} /></IconBtn>
@@ -198,7 +252,7 @@ export function Ros() {
           {times.length === 0 && <tr><td colSpan={10} className="p-6 text-center text-sm text-fg-muted">No cues. Add the first one.</td></tr>}
         </tbody>
       </TableWrap>
-      <p className="mt-2 text-[11px] text-fg-muted">Start times recalculate from the Master Show Start and each row's duration. Reorder, insert or edit a duration and every following row updates. Drag the <GripVertical size={11} className="inline -mt-0.5" /> handle to reorder — a section moves with all its cues. Press <kbd className="rounded bg-raise px-1 font-mono">Space</kbd> in Live Show Mode to take the next cue. <b className="font-medium text-fg-soft">Sections</b> group the cues below them: with cues, their duration is the plan (actual vs plan shown on the header) and GO skips the header; an empty section (break, changeover) is a timed block that adds to the running time.</p>
+      <p className="mt-2 text-[11px] text-fg-muted">Start times recalculate from the Master Show Start and each row's duration. Reorder, insert or edit a duration and every following row updates. Drag the <GripVertical size={11} className="inline -mt-0.5" /> handle to reorder — a section moves with all its cues. Press <kbd className="rounded bg-raise px-1 font-mono">Space</kbd> in Live Show Mode to take the next cue, <kbd className="rounded bg-raise px-1 font-mono">Shift+Space</kbd> to go back. <b className="font-medium text-fg-soft">Sections</b> group the cues below them: with cues, their duration is the plan (actual vs plan shown on the header) and GO skips the header; an empty section (break, changeover) is a timed block that adds to the running time.</p>
     </section>
   );
 }

@@ -1,6 +1,8 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
-import { ChevronDown, ChevronLeft, CloudOff, Download, Eye, Loader2, MapPin, Play, Printer, RotateCcw, Timer, Upload, Check as CheckIcon } from "lucide-react";
+import { ChevronDown, ChevronLeft, CloudOff, Download, Eye, History, Link2, Loader2, MapPin, MonitorPlay, Play, Printer, RotateCcw, Timer, Upload, Check as CheckIcon } from "lucide-react";
+import { HistoryModal } from "./HistoryModal";
+import { ShareModal } from "./live/ShareModal";
 import { CrewControls } from "./Crew";
 import { useShow } from "@/lib/store";
 import { computeTimes, fmtHMS, fmtSigned, nextPlayable, todSeconds, wrapDiff } from "@/lib/time";
@@ -9,12 +11,13 @@ import { ThemeToggle } from "./Theme";
 import { Progress, cx } from "./ui";
 import type { Format, Show } from "@/lib/types";
 
-function useNow(ms = 250) {
-  const [now, setNow] = useState<number>(() => Date.now());
+/** Server-aligned clock so every device shows the same countdown. */
+function useNow(clock: () => number, ms = 250) {
+  const [now, setNow] = useState<number>(() => clock());
   useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), ms);
+    const t = setInterval(() => setNow(clock()), ms);
     return () => clearInterval(t);
-  }, [ms]);
+  }, [clock, ms]);
   return now;
 }
 
@@ -28,10 +31,11 @@ function fmtVariance(sec: number) {
 }
 
 export function Header({ onPrint }: { onPrint: () => void }) {
-  const { show, patchEvent, setLive, go, prev, resetTimer, replaceAll, reset, canEdit, sync } = useShow();
-  const now = useNow();
+  const { show, patchEvent, setLive, go, prev, resetTimer, replaceAll, reset, canEdit, sync, serverNow } = useShow();
+  const now = useNow(serverNow);
   const fileRef = useRef<HTMLInputElement>(null);
   const [menu, setMenu] = useState(false);
+  const [modal, setModal] = useState<null | "history" | "share">(null);
 
   const times = computeTimes(show.cues, show.event.startTime);
   const idx = Math.min(show.live.idx, Math.max(times.length - 1, 0));
@@ -102,9 +106,13 @@ export function Header({ onPrint }: { onPrint: () => void }) {
           <ThemeToggle />
 
           <div className="relative">
-            <button className="btn" onClick={() => setMenu((m) => !m)} aria-expanded={menu}><Download size={14} /> Export <ChevronDown size={13} className="text-fg-muted" /></button>
+            <button className="btn" onClick={() => setMenu((m) => !m)} aria-expanded={menu}><Download size={14} /> Share & export <ChevronDown size={13} className="text-fg-muted" /></button>
             {menu && (
-              <div className="absolute right-0 top-full z-50 mt-2 w-60 rounded-xl border border-line bg-surface p-1.5 shadow-xl shadow-black/5" onMouseLeave={() => setMenu(false)}>
+              <div className="absolute right-0 top-full z-50 mt-2 w-64 rounded-xl border border-line bg-surface p-1.5 shadow-xl shadow-black/5" onMouseLeave={() => setMenu(false)}>
+                <MenuItem icon={<Link2 size={14} />} onClick={() => { setModal("share"); setMenu(false); }}>Guest pass · link & QR{show.share?.token ? <span className="ml-auto h-1.5 w-1.5 rounded-full bg-pvw" /> : null}</MenuItem>
+                <MenuItem icon={<MonitorPlay size={14} />} onClick={() => { window.open("/timer", "_blank"); setMenu(false); }}>Stage timer (new tab)</MenuItem>
+                <MenuItem icon={<History size={14} />} onClick={() => { setModal("history"); setMenu(false); }}>Version history</MenuItem>
+                <div className="my-1 h-px bg-line" />
                 <MenuItem icon={<Download size={14} />} onClick={() => { exportJson(); setMenu(false); }}>Production book · JSON</MenuItem>
                 <MenuItem icon={<Download size={14} />} onClick={() => { exportCsv(); setMenu(false); }}>Production book · CSV</MenuItem>
                 <MenuItem icon={<Printer size={14} />} onClick={() => { setMenu(false); onPrint(); }}>Print / PDF view</MenuItem>
@@ -114,6 +122,8 @@ export function Header({ onPrint }: { onPrint: () => void }) {
               </div>
             )}
             <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={(e) => { onImport(e.target.files?.[0]); e.target.value = ""; }} />
+            <HistoryModal open={modal === "history"} onClose={() => setModal(null)} />
+            <ShareModal open={modal === "share"} onClose={() => setModal(null)} />
           </div>
 
           <button
@@ -141,6 +151,7 @@ export function Header({ onPrint }: { onPrint: () => void }) {
               <span className={cx("h-2 w-2 rounded-full", live ? "animate-tally bg-pgm" : "bg-line-strong")} />
               <span className={live ? "text-pgm" : ""}>{live ? "On air" : "Standby"}</span>
               {active && <span className="font-mono text-fg-soft">{active.cue.num}</span>}
+              {show.live.by && <span className="ml-auto truncate text-fg-faint" title="Last transport action by">Called by {show.live.by}</span>}
             </div>
             <div className="truncate text-sm font-semibold text-fg">{active?.cue.title ?? "No cues"}</div>
             <div className="mt-2"><Progress pct={pct} color={remaining < 0 ? "bg-pgm" : remaining <= 30 && live ? "bg-cg" : "bg-pgm/70"} /></div>

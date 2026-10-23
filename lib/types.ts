@@ -135,6 +135,25 @@ export interface SiteMap {
 /** Kept as its own top-level section so dragging markers doesn't re-upload the picture. */
 export interface SiteImage { src: string | null; name: string; w: number; h: number }
 
+/* ---------------- Show calling, stage display, sharing, comments ---------------- */
+/** One "take" in the proof-of-performance log (times are server-adjusted epoch ms; planned values in seconds). */
+export interface PerfEntry {
+  id: string;
+  cueId: string;
+  num: string;
+  title: string;
+  plannedStart: number; // seconds since midnight
+  plannedDur: number;   // seconds
+  start: number;        // epoch ms
+  end: number | null;   // epoch ms
+  by: string | null;
+}
+export interface StageMsg { text: string; tone: "info" | "warn" | "urgent"; flash: boolean; at: number; by?: string | null }
+/** Guest pass. Server-managed (admins only) — the client never writes this section. */
+export interface ShareCfg { token: string | null; showNotes: boolean; createdAt: number | null; createdBy?: string | null }
+/** Cue comments. Server-managed via /api/comment so view-only crew can comment too. */
+export interface CueComment { id: string; cueId: string; text: string; by: string; byId: string; at: number; resolved: boolean }
+
 export interface Show {
   event: { name: string; venue: string; format: Format; startTime: string };
   cues: Cue[];
@@ -148,7 +167,11 @@ export interface Show {
   /** Ordered, user-editable gear sections. */
   gearCats: string[];
   qc: QcItem[];
-  live: { on: boolean; idx: number; startedAt: number | null };
+  live: { on: boolean; idx: number; startedAt: number | null; by?: string | null };
+  perfLog: PerfEntry[];
+  stageMsg: StageMsg | null;
+  share: ShareCfg;
+  comments: CueComment[];
   siteMap: SiteMap;
   siteImage: SiteImage;
 }

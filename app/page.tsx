@@ -89,7 +89,7 @@ function Stat({ label, value, pct, color }: { label: string; value: string; pct:
 }
 
 function App() {
-  const { ready, show, go, canEdit } = useShow();
+  const { ready, show, go, prev, canEdit } = useShow();
   const [tab, setTab] = useState<TabId>("ros");
   const [printing, setPrinting] = useState(false);
 
@@ -98,19 +98,20 @@ function App() {
   }, []);
   useEffect(() => { try { localStorage.setItem("pangeadock.tab", tab); } catch {} }, [tab]);
 
-  // Spacebar = GO while Live Show Mode is active and nothing editable has focus.
+  // Space = GO, Shift+Space = back one cue, while Live Show Mode is active and nothing editable has focus.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.code !== "Space" && e.key !== " ") return;
       if (!show.live.on || !canEdit || e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
+      if (t?.closest("[role=dialog]")) return;
       e.preventDefault();
-      go();
+      if (e.shiftKey) prev(); else go();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [show.live.on, canEdit, go]);
+  }, [show.live.on, canEdit, go, prev]);
 
   if (!ready) return <div className="grid min-h-screen place-items-center text-xs font-medium text-fg-muted">Loading Pangea Dock…</div>;
   const Active = TABS.find((t) => t.id === tab)!.el;

@@ -111,7 +111,11 @@ export function seed(): Show {
       { id: id("q"), dept: "Network, Stream & Recording QC", text: "Emergency Slates loaded in switcher standby slot", done: false },
       { id: id("q"), dept: "Network, Stream & Recording QC", text: "Main switcher and encoder plugged into UPS battery backup", done: true },
     ],
-    live: { on: false, idx: 0, startedAt: null },
+    live: { on: false, idx: 0, startedAt: null, by: null },
+    perfLog: [],
+    stageMsg: null,
+    share: { token: null, showNotes: false, createdAt: null, createdBy: null },
+    comments: [],
     ...seedSite(),
   };
 }

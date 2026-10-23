@@ -27,6 +27,11 @@ export function fmtMS(sec: number): string {
   const s = Math.round(Math.abs(sec));
   return `${p2(s / 60)}:${p2(s % 60)}`;
 }
+/** Unsigned length: MM:SS under an hour, H:MM:SS above. */
+export function fmtLen(sec: number): string {
+  const s = Math.round(Math.abs(sec));
+  return s < 3600 ? fmtMS(s) : `${Math.floor(s / 3600)}:${p2((s % 3600) / 60)}:${p2(s % 60)}`;
+}
 /** Signed countdown: 15 -> "00:15", -15 -> "-00:15" */
 export function fmtSigned(sec: number): string {
   const r = Math.round(sec);

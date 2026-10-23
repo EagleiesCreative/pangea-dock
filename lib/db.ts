@@ -22,6 +22,10 @@ export interface ShowRecord {
 export interface ShowStore {
   get(orgId: string): Promise<ShowRecord>;
   merge(orgId: string, patch: Partial<Show>, user: string): Promise<ShowRecord>;
+  /** Read-modify-write: `fn` sees the latest data and returns the sections to write (or null to skip). Retries on conflict. */
+  transact(orgId: string, fn: (data: Partial<Show>) => Partial<Show> | null, user: string): Promise<ShowRecord>;
+  /** Guest-pass lookup: which production owns this share token (and its current version)? */
+  findShare(token: string): Promise<{ orgId: string; version: number } | null>;
 }
 
 /* ---------------- Local file adapter ---------------- */
@@ -39,8 +43,13 @@ const fileStore: ShowStore = {
     }
   },
   merge(orgId, patch, user) {
+    return fileStore.transact(orgId, () => patch, user);
+  },
+  transact(orgId, fn, user) {
     const run = async () => {
       const cur = await fileStore.get(orgId);
+      const patch = fn(cur.data ?? {});
+      if (!patch) return cur;
       const next: ShowRecord = {
         data: { ...(cur.data ?? {}), ...patch },
         version: cur.version + 1,
@@ -55,7 +64,17 @@ const fileStore: ShowStore = {
     };
     const p = chain.then(run, run);
     chain = p.catch(() => {});
-    return p;
+    return p as Promise<ShowRecord>;
+  },
+  async findShare(token) {
+    try {
+      for (const f of await fs.readdir(DIR)) {
+        if (!f.endsWith(".json")) continue;
+        const rec = JSON.parse(await fs.readFile(path.join(DIR, f), "utf8")) as ShowRecord;
+        if (rec.data?.share?.token === token) return { orgId: f.replace(/\.json$/, ""), version: rec.version };
+      }
+    } catch {}
+    return null;
   },
 };
 
@@ -68,10 +87,14 @@ async function supaFail(what: string, res: Response): Promise<never> {
   throw new Error(`Supabase ${what} failed (${res.status}): ${body.slice(0, 160)}`);
 }
 
+export function supabaseHeaders(key: string) { return { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json" }; }
+export { supaFail };
+
 function supabaseStore(url: string, key: string): ShowStore {
   if (key.startsWith("sb_publishable_")) {
     const msg = "SUPABASE_SERVICE_ROLE_KEY is the publishable key — use the secret key (sb_secret_…) from Supabase → Project Settings → API Keys.";
-    return { get: async () => { throw new Error(msg); }, merge: async () => { throw new Error(msg); } };
+    const no = async () => { throw new Error(msg); };
+    return { get: no, merge: no, transact: no, findShare: no };
   }
   const headers = { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json" };
   const toRecord = (r: { data: Partial<Show> | null; version: number; updated_by: string | null; updated_at: string | null } | undefined): ShowRecord =>
@@ -84,11 +107,22 @@ function supabaseStore(url: string, key: string): ShowStore {
     },
     // Optimistic read-modify-write: the UPDATE only applies if `version` is unchanged since we read it,
     // so two simultaneous saves can't silently overwrite each other — the loser re-reads and re-merges.
-    async merge(orgId, patch, user) {
+    merge(orgId, patch, user) {
+      return this.transact(orgId, () => patch, user);
+    },
+    async findShare(token) {
+      const res = await fetch(`${url}/rest/v1/pangea_shows?data->share->>token=eq.${encodeURIComponent(token)}&select=org_id,version&limit=1`, { headers, cache: "no-store" });
+      if (!res.ok) await supaFail("read", res);
+      const r = (await res.json())[0];
+      return r ? { orgId: r.org_id as string, version: r.version as number } : null;
+    },
+    async transact(orgId, fn, user) {
       const rep = { ...headers, Prefer: "return=representation" };
       const sel = "select=data,version,updated_by,updated_at";
       for (let attempt = 0; attempt < 6; attempt++) {
         const cur = await this.get(orgId);
+        const patch = fn(cur.data ?? {});
+        if (!patch) return cur;
         const now = new Date().toISOString();
         if (cur.version === 0 && cur.data === null) {
           const res = await fetch(`${url}/rest/v1/pangea_shows?${sel}`, {
