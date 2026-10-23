@@ -2,6 +2,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { seed } from "./seed";
+import { isPlayable, nextPlayable, prevPlayable } from "./time";
 import { canEditRole } from "./roles";
 import type { ListKey, Show } from "./types";
 
@@ -215,19 +216,25 @@ export function ShowProvider({ children, clientRole = null }: { children: React.
     replaceAll: (s) => mutate(() => migrate(s)),
     reset: () => mutate(() => seed()),
     setLive: (on) =>
-      mutate((s) => ({
-        ...s,
-        live: on
-          ? { on: true, idx: Math.min(Math.max(s.live.idx, 0), Math.max(s.cues.length - 1, 0)), startedAt: Date.now() }
-          : { ...s.live, on: false, startedAt: null },
-      })),
+      mutate((s) => {
+        if (!on) return { ...s, live: { ...s.live, on: false, startedAt: null } };
+        // Start on the current row if it can be taken, otherwise the next cue (skip section headers).
+        let idx = Math.min(Math.max(s.live.idx, 0), Math.max(s.cues.length - 1, 0));
+        if (!isPlayable(s.cues, idx)) { const n = nextPlayable(s.cues, idx); idx = n >= 0 ? n : idx; }
+        return { ...s, live: { on: true, idx, startedAt: Date.now() } };
+      }),
     go: () =>
       mutate((s) => {
         if (!s.live.on) return s;
-        if (s.live.idx >= s.cues.length - 1) return { ...s, live: { on: false, idx: s.live.idx, startedAt: null } };
-        return { ...s, live: { on: true, idx: s.live.idx + 1, startedAt: Date.now() } };
+        const n = nextPlayable(s.cues, s.live.idx);
+        if (n < 0) return { ...s, live: { on: false, idx: s.live.idx, startedAt: null } }; // end of show
+        return { ...s, live: { on: true, idx: n, startedAt: Date.now() } };
       }),
-    prev: () => mutate((s) => ({ ...s, live: { ...s.live, idx: Math.max(0, s.live.idx - 1), startedAt: s.live.on ? Date.now() : null } })),
+    prev: () =>
+      mutate((s) => {
+        const p = prevPlayable(s.cues, s.live.idx);
+        return { ...s, live: { ...s.live, idx: p >= 0 ? p : s.live.idx, startedAt: s.live.on ? Date.now() : null } };
+      }),
     resetTimer: () => mutate((s) => ({ ...s, live: { ...s.live, startedAt: s.live.on ? Date.now() : null } })),
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [show, ready, canEdit, role, sync, mutate]);

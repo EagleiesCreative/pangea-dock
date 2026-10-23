@@ -26,7 +26,9 @@ export function PrintBook({ onClose }: { onClose: () => void }) {
       <p className="text-xs text-gray-600">{s.event.venue} · {s.event.format} · Show start {s.event.startTime} · Production Book generated {new Date().toLocaleString()}</p>
 
       <H>Run of Show</H>
-      <T head={["Cue", "Start", "Dur", "Segment", "Video", "Audio", "CG", "Notes"]} rows={times.map(({ cue, start }) => [cue.num, fmtHMS(start), cue.dur, cue.title, cue.source, cue.audio, cue.cg, cue.notes])} />
+      <T head={["Cue", "Start", "Dur", "Segment", "Video", "Audio", "CG", "Notes"]} rows={times.map(({ cue, start, isSection, hasChildren }) => isSection
+        ? ["§", fmtHMS(start), cue.dur, `${cue.title.toUpperCase()}${hasChildren ? " — planned" : " — timed block"}`, "", "", "", ""]
+        : [cue.num, fmtHMS(start), cue.dur, cue.title, cue.source, cue.audio, cue.cg, cue.notes])} />
       <H>Camera Plot</H>
       <T head={["Cam", "Operator", "Body", "Lens", "Mount", "Framing", "Cable", "Comms", "Tally"]} rows={s.cameras.map((c) => [c.label, c.operator, c.body, c.lens, c.mount, c.framing, c.cable, c.comms, c.tally])} />
       <H>Switcher Inputs</H>

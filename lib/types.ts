@@ -18,6 +18,8 @@ export type QcDept = "Video & Color QC" | "Audio & Comms QC" | "Network, Stream 
 
 export interface Cue {
   id: string;
+  /** "section" = header row (name + planned duration) grouping the cues below it, Shoflo-style. */
+  kind?: "cue" | "section";
   num: string;
   dur: string; // MM:SS
   title: string;

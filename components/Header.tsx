@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronLeft, CloudOff, Download, Eye, Loader2, MapPin, Play, Printer, RotateCcw, Timer, Upload, Check as CheckIcon } from "lucide-react";
 import { CrewControls } from "./Crew";
 import { useShow } from "@/lib/store";
-import { computeTimes, fmtHMS, fmtSigned, todSeconds, wrapDiff } from "@/lib/time";
+import { computeTimes, fmtHMS, fmtSigned, nextPlayable, todSeconds, wrapDiff } from "@/lib/time";
 import { download, productionBookCsv, slug } from "@/lib/export";
 import { ThemeToggle } from "./Theme";
 import { Progress, cx } from "./ui";
@@ -36,7 +36,7 @@ export function Header({ onPrint }: { onPrint: () => void }) {
   const times = computeTimes(show.cues, show.event.startTime);
   const idx = Math.min(show.live.idx, Math.max(times.length - 1, 0));
   const active = times[idx];
-  const next = times[idx + 1];
+  const next = times[nextPlayable(show.cues, idx)]; // skips section headers
   const live = show.live.on;
   const elapsed = live && show.live.startedAt ? (now - show.live.startedAt) / 1000 : 0;
   const remaining = active ? active.durSec - elapsed : 0;
